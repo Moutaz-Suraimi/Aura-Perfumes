@@ -5,7 +5,7 @@ export function BrandsRow() {
       {brands.map((b) => (
         <div
           key={b.id}
-          className="bg-white border border-cream-deep rounded-2xl p-4 shadow-sm flex flex-col items-center"
+          className="bg-card border border-cream-deep rounded-2xl p-4 shadow-sm flex flex-col items-center"
         >
           <div className="w-full h-28 flex items-center justify-center bg-cream-deep/30 rounded-xl">
             <img src={b.logo} alt={b.name} className="max-h-full object-contain" />

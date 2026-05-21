@@ -39,7 +39,7 @@ function CartPage() {
           {items.map(({ product, qty }) => (
             <div
               key={product.id}
-              className="bg-white rounded-3xl border border-cream-deep p-4 md:p-5 flex gap-4 md:gap-6 shadow-sm relative group"
+              className="bg-card rounded-3xl border border-cream-deep p-4 md:p-5 flex gap-4 md:gap-6 shadow-sm relative group"
             >
               <button
                 onClick={() => remove(product.id)}
@@ -97,7 +97,7 @@ function CartPage() {
         </div>
 
         <div className="w-full lg:w-[400px] shrink-0">
-          <div className="bg-white rounded-3xl border border-cream-deep p-6 md:p-8 shadow-sm sticky top-24">
+          <div className="bg-card rounded-3xl border border-cream-deep p-6 md:p-8 shadow-sm sticky top-24">
             <h2 className="text-xl font-bold mb-6">ملخص الطلب</h2>
             <div className="space-y-4 text-sm mb-6">
               <div className="flex justify-between">

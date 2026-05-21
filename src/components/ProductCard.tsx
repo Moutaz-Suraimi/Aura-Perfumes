@@ -1,14 +1,14 @@
-﻿import { Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { ShoppingBag } from "lucide-react";
 import type { Product, Badge } from "@/data/products";
 import { useCart, fmt } from "@/lib/cart";
 
 const badgeText: Record<Badge, string> = {
-  best: "Ø§Ù„Ø£ÙƒØ«Ø± Ø·Ù„Ø¨Ø§Ù‹",
-  new: "ÙˆØµÙ„ Ø­Ø¯ÙŠØ«Ø§Ù‹",
-  limited: "Ù„ÙØªØ±Ø© Ù…Ø­Ø¯ÙˆØ¯Ø©",
-  expert: "ØªØ±Ø´ÙŠØ­ Ø§Ù„Ø®Ø¨Ø±Ø§Ø¡",
-  today: "ÙØ±ØµØ© Ø§Ù„ÙŠÙˆÙ…",
+  best: "الأكثر طلباً",
+  new: "وصل حديثاً",
+  limited: "لفترة محدودة",
+  expert: "ترشيح الخبراء",
+  today: "فرصة اليوم",
 };
 const badgeColor: Record<Badge, string> = {
   best: "bg-badge-navy",
@@ -22,7 +22,7 @@ export function ProductCard({ product }: { product: Product }) {
   const { add } = useCart();
   const discount = Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100);
   return (
-    <div className="relative bg-white rounded-2xl border border-cream-deep shadow-[0_6px_20px_-10px_rgba(183,110,34,0.25)] overflow-hidden w-full flex flex-col">
+    <div className="relative bg-card rounded-2xl border border-border shadow-sm overflow-hidden w-full flex flex-col group hover:border-primary transition-colors">
       {/* Top badges */}
       <div className="absolute top-3 right-3 z-10">
         {product.badge && (
@@ -36,16 +36,16 @@ export function ProductCard({ product }: { product: Product }) {
       <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5">
         <span className="bg-discount text-white text-[11px] font-bold px-2 py-1 rounded-md leading-tight">
           {discount}%<br />
-          Ø®ØµÙ…
+          خصم
         </span>
         {product.freeShipping && (
           <span className="bg-badge-green text-white text-[10px] font-bold px-2 py-1 rounded-md leading-tight">
-            Ø´Ø­Ù† Ù…Ø¬Ø§Ù†ÙŠ
+            شحن مجاني
           </span>
         )}
       </div>
 
-      <Link to="/products/$id" params={{ id: product.id }} className="block p-6 pt-10 bg-white">
+      <Link to="/products/$id" params={{ id: product.id }} className="block p-6 pt-10 bg-card">
         <img
           src={product.image}
           alt={product.name}

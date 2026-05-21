@@ -155,9 +155,9 @@ function AccountDashboard() {
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-8">
         <div className="w-full md:w-72 shrink-0">
           <div className="bg-brand rounded-3xl p-6 text-white shadow-xl relative overflow-hidden mb-6">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-card/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             <div className="relative z-10 flex items-center gap-4 mb-6">
-              <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/30">
+              <div className="w-14 h-14 bg-card/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/30">
                 <User size={24} />
               </div>
               <div>
@@ -236,7 +236,7 @@ function AccountDashboard() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white/10 backdrop-blur rounded-xl px-3 py-2 text-center border border-white/20">
+    <div className="bg-card/10 backdrop-blur rounded-xl px-3 py-2 text-center border border-white/20">
       <div className="text-xl md:text-2xl font-bold text-white">{value}</div>
       <div className="text-xs text-white/70">{label}</div>
     </div>

@@ -1,4 +1,4 @@
-﻿import { Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 
 export function SectionTitle({
   title,
@@ -30,7 +30,7 @@ export function SectionTitle({
         to={href}
         className="text-brand font-bold text-sm md:text-base hover:underline flex items-center gap-1 bg-brand/10 px-4 py-2 rounded-full transition-colors hover:bg-brand/20"
       >
-        Ø¹Ø±Ø¶ Ø§Ù„ÙƒÙ„
+        عرض الكل
       </Link>
     </div>
   );

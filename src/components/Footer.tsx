@@ -132,9 +132,9 @@ export function Footer() {
       <div className="max-w-7xl mx-auto border-t border-white/10 mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
         <p className="text-white/50 text-xs">© 2026 أورا للعطور. جميع الحقوق محفوظة.</p>
         <div className="flex gap-4 opacity-50">
-          <div className="w-10 h-6 bg-white/20 rounded"></div>
-          <div className="w-10 h-6 bg-white/20 rounded"></div>
-          <div className="w-10 h-6 bg-white/20 rounded"></div>
+          <div className="w-10 h-6 bg-card border-t border-border/20 rounded"></div>
+          <div className="w-10 h-6 bg-card border-t border-border/20 rounded"></div>
+          <div className="w-10 h-6 bg-card border-t border-border/20 rounded"></div>
         </div>
       </div>
     </footer>
