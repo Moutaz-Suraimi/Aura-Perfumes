@@ -32,3 +32,30 @@ export function HeroBanner() {
     </div>
   );
 }
+
+export function PromoBanner({
+  title,
+  desc,
+  cta,
+}: {
+  title: string;
+  desc: string;
+  cta: string;
+}) {
+  return (
+    <div className="mx-3 md:mx-6 my-12 bg-card border border-cream-deep rounded-3xl p-8 md:p-12 text-center shadow-sm relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-brand/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+      <div className="absolute bottom-0 left-0 w-32 h-32 bg-brand/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+      <div className="relative z-10">
+        <h2 className="text-2xl md:text-4xl font-bold mb-4">{title}</h2>
+        <p className="text-muted-foreground max-w-xl mx-auto mb-8">{desc}</p>
+        <Link
+          to="/products"
+          className="inline-block bg-foreground hover:bg-foreground/90 text-background font-bold py-3 px-8 rounded-full shadow-lg transition-transform hover:scale-105"
+        >
+          {cta}
+        </Link>
+      </div>
+    </div>
+  );
+}

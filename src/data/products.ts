@@ -27,7 +27,7 @@ const unsplashImages = [
   "https://images.unsplash.com/photo-1616949755610-8c9bbc08f138?q=80&w=600",
 ];
 
-const PH = (label: string) => {
+const PH = (label: string, bg?: string, fg?: string) => {
   let hash = 0;
   for (let i = 0; i < label.length; i++) hash += label.charCodeAt(i);
   return unsplashImages[hash % unsplashImages.length];

@@ -8,7 +8,7 @@ export const Route = createFileRoute("/cart")({
 });
 
 function CartPage() {
-  const { items, update, remove, total } = useCart();
+  const { items, setQty, remove, total } = useCart();
 
   if (items.length === 0) {
     return (
@@ -76,14 +76,14 @@ function CartPage() {
                 <div className="mt-auto pt-4 flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center bg-cream-deep/40 border border-cream-deep rounded-xl">
                     <button
-                      onClick={() => update(product.id, qty + 1)}
+                      onClick={() => setQty(product.id, qty + 1)}
                       className="w-9 h-9 flex items-center justify-center hover:text-brand transition"
                     >
                       <Plus size={14} />
                     </button>
                     <span className="w-10 text-center font-bold">{qty}</span>
                     <button
-                      onClick={() => update(product.id, qty - 1)}
+                      onClick={() => setQty(product.id, qty - 1)}
                       className="w-9 h-9 flex items-center justify-center hover:text-brand transition"
                     >
                       <Minus size={14} />
