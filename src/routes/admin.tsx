@@ -18,7 +18,7 @@ import {
 import { allProducts, type Product } from "@/data/products";
 import { fmt } from "@/lib/cart";
 import { useEffect } from "react";
-import { signInWithEmailAndPassword, onAuthStateChanged, signOut, User as FirebaseUser } from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, User as FirebaseUser } from "firebase/auth";
 import { collection, getDocs, query } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { getUserProfile, UserProfile } from "@/lib/db";
