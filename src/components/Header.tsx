@@ -28,14 +28,14 @@ export function Header() {
   ];
 
   return (
-    <header className="px-3 md:px-6 pt-4 pb-2 relative z-40">
-      <div className="bg-[#0e0e0e] text-white rounded-full flex items-center justify-between px-3 py-2 shadow-lg relative">
+    <header className="px-4 md:px-8 pt-6 pb-4 relative z-40">
+      <div className="flex items-center justify-between relative">
         <Link
           to="/cart"
           aria-label="السلة"
-          className="relative w-11 h-11 bg-[#1a1a1a] rounded-full flex items-center justify-center hover:bg-[#262626] transition shrink-0"
+          className="relative w-12 h-12 bg-cream-deep/40 text-foreground rounded-full flex items-center justify-center hover:bg-cream-deep/60 transition shrink-0 shadow-sm"
         >
-          <ShoppingCart size={20} />
+          <ShoppingCart size={22} />
           {count > 0 && (
             <span className="absolute -top-1 -right-1 bg-brand text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
               {count}
@@ -46,7 +46,7 @@ export function Header() {
         {searchOpen ? (
           <form
             onSubmit={handleSearch}
-            className="flex-1 mx-2 relative animate-in fade-in zoom-in duration-200"
+            className="flex-1 mx-4 relative animate-in fade-in zoom-in duration-200"
           >
             <input
               type="text"
@@ -54,38 +54,38 @@ export function Header() {
               placeholder="ابحث عن عطر..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full bg-[#1a1a1a] text-white rounded-full px-4 py-2.5 outline-none focus:ring-1 focus:ring-brand text-sm"
+              className="w-full bg-cream-deep/40 text-foreground rounded-full px-5 py-3 outline-none focus:ring-1 focus:ring-brand text-sm shadow-sm"
             />
             <button
               type="button"
               onClick={() => setSearchOpen(false)}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white"
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
-              <X size={16} />
+              <X size={18} />
             </button>
           </form>
         ) : (
-          <Link to="/" className="text-brand font-bold text-lg md:text-xl tracking-wide truncate">
+          <Link to="/" className="text-brand font-bold text-xl md:text-2xl tracking-wide truncate">
             أورا للعطور
           </Link>
         )}
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
           {!searchOpen && (
             <button
               onClick={() => setSearchOpen(true)}
               aria-label="بحث"
-              className="w-11 h-11 bg-[#1a1a1a] rounded-full flex items-center justify-center hover:bg-[#262626]"
+              className="w-12 h-12 bg-cream-deep/40 text-foreground rounded-full flex items-center justify-center hover:bg-cream-deep/60 shadow-sm transition"
             >
-              <Search size={20} />
+              <Search size={22} />
             </button>
           )}
           <button
             aria-label="القائمة"
             onClick={() => setOpen(true)}
-            className="w-11 h-11 bg-[#1a1a1a] rounded-full flex items-center justify-center hover:bg-[#262626]"
+            className="w-12 h-12 bg-cream-deep/40 text-foreground rounded-full flex items-center justify-center hover:bg-cream-deep/60 shadow-sm transition"
           >
-            <Menu size={20} />
+            <Menu size={22} />
           </button>
         </div>
       </div>

@@ -42,32 +42,32 @@
 
 :root {
   --radius: 1rem;
-  --background: #0a0a0a;
-  --foreground: #f3f4f6;
-  --card: #141414;
-  --card-foreground: #f3f4f6;
-  --primary: #d4af37;
-  --primary-foreground: #0a0a0a;
-  --secondary: #1f1f1f;
-  --secondary-foreground: #f3f4f6;
-  --muted: #1f1f1f;
-  --muted-foreground: #9ca3af;
-  --accent: #1f1f1f;
-  --accent-foreground: #d4af37;
-  --border: #262626;
-  --ring: #d4af37;
+  --background: #f7efef;
+  --foreground: #4a3036;
+  --card: #fcf6f6;
+  --card-foreground: #4a3036;
+  --primary: #7a5059;
+  --primary-foreground: #ffffff;
+  --secondary: #e8d8d8;
+  --secondary-foreground: #4a3036;
+  --muted: #e8d8d8;
+  --muted-foreground: #8a6a72;
+  --accent: #fcf6f6;
+  --accent-foreground: #7a5059;
+  --border: #e8d8d8;
+  --ring: #7a5059;
 
-  --cream: #0a0a0a;
-  --cream-deep: #1f1f1f;
-  --brand: #d4af37;
-  --brand-dark: #b8962c;
+  --cream: #fcf6f6;
+  --cream-deep: #e8d8d8;
+  --brand: #7a5059;
+  --brand-dark: #5e3c43;
   --discount: #ef4444;
   --badge-navy: #1e3a8a;
   --badge-purple: #7e22ce;
   --badge-green: #15803d;
   --badge-orange: #ea580c;
-  --footer: #000000;
-  --footer-card: #0a0a0a;
+  --footer: #fcf6f6;
+  --footer-card: #f7efef;
   --whatsapp: #22c35e;
 }
 

@@ -2,21 +2,23 @@ import { Link } from "@tanstack/react-router";
 
 export function HeroBanner() {
   return (
-    <div className="relative overflow-hidden rounded-3xl mx-3 md:mx-6 mt-4 md:mt-6 bg-gradient-to-r from-cream-deep to-cream h-[400px] md:h-[500px] flex items-center shadow-sm">
-      <div className="absolute inset-0 z-0">
+    <div className="relative overflow-hidden rounded-3xl mx-3 md:mx-6 mt-4 md:mt-6 bg-[#f0e4e4] h-[400px] md:h-[500px] flex items-center shadow-sm">
+      <div className="absolute top-0 bottom-0 left-0 w-full md:w-1/2 z-0">
         <img
-          src="https://images.unsplash.com/photo-1594035910387-fea47794261f?q=80&w=2000"
+          src="https://images.unsplash.com/photo-1590156546946-ce55a12a6a5d?q=80&w=2000"
           alt="Aura Perfumes"
-          className="w-full h-full object-cover opacity-20"
+          className="w-full h-full object-cover"
         />
+        {/* Gradient fade to blend image with background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#f0e4e4]"></div>
       </div>
 
-      <div className="relative z-10 px-8 md:px-16 md:w-2/3">
-        <div className="inline-block bg-brand text-white text-xs font-bold px-3 py-1 rounded-full mb-4">
+      <div className="relative z-10 px-8 md:px-16 w-full md:w-1/2 text-right">
+        <div className="inline-block bg-brand/60 text-white text-xs font-bold px-4 py-1.5 rounded-full mb-4">
           تشكيلة العيد 2026
         </div>
         <h1 className="text-4xl md:text-6xl font-bold text-brand mb-4">أورا للعطور</h1>
-        <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-lg leading-relaxed">
+        <p className="text-lg md:text-xl text-foreground mb-8 max-w-lg leading-relaxed">
           اكتشف مجموعة فاخرة من العطور التي تعبر عن شخصيتك وتترك أثراً لا ينسى في كل مكان.
         </p>
 
