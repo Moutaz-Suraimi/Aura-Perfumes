@@ -116,9 +116,12 @@ function CartPage() {
               </div>
               <p className="text-xs text-muted-foreground mt-2">شامل ضريبة القيمة المضافة</p>
             </div>
-            <button className="w-full bg-brand hover:bg-brand-dark text-white font-bold rounded-xl py-4 shadow-lg transition-transform active:scale-[0.98]">
+            <Link
+              to="/checkout"
+              className="w-full flex items-center justify-center bg-brand hover:bg-brand-dark text-white font-bold rounded-xl py-4 shadow-lg transition-transform active:scale-[0.98]"
+            >
               إتمام الطلب بأمان
-            </button>
+            </Link>
           </div>
         </div>
       </div>

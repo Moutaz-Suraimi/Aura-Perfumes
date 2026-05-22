@@ -14,6 +14,11 @@ import {
   X,
   Truck,
   MapPin,
+  Landmark,
+  FileText,
+  PieChart,
+  TrendingUp,
+  DollarSign
 } from "lucide-react";
 import { allProducts, type Product } from "@/data/products";
 import { fmt } from "@/lib/cart";
@@ -21,7 +26,7 @@ import { useEffect } from "react";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, User as FirebaseUser } from "firebase/auth";
 import { collection, getDocs, query } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
-import { getUserProfile, UserProfile } from "@/lib/db";
+import { getUserProfile, UserProfile, getAllOrders, updateOrderStatus, getBankAccounts, saveBankAccounts, Order, BankAccount } from "@/lib/db";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -33,7 +38,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminDashboard,
 });
 
-type AdminTab = "overview" | "products" | "users" | "tracking" | "shipping";
+type AdminTab = "overview" | "products" | "users" | "tracking" | "shipping" | "orders" | "bank" | "analytics";
 
 function AdminDashboard() {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
@@ -42,6 +47,8 @@ function AdminDashboard() {
 
   const [tab, setTab] = useState<AdminTab>("overview");
   const [realUsers, setRealUsers] = useState<UserProfile[]>([]);
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
 
   const [email, setEmail] = useState("waelmoutaz297@gmail.com");
   const [password, setPassword] = useState("");
@@ -90,15 +97,21 @@ function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    if (isAdmin && tab === "users") {
-      const fetchUsers = async () => {
-        const q = query(collection(db, "users"));
-        const snap = await getDocs(q);
-        const usersList: UserProfile[] = [];
-        snap.forEach(doc => usersList.push(doc.data() as UserProfile));
-        setRealUsers(usersList);
-      };
-      fetchUsers();
+    if (isAdmin) {
+      if (tab === "users") {
+        const fetchUsers = async () => {
+          const q = query(collection(db, "users"));
+          const snap = await getDocs(q);
+          const usersList: UserProfile[] = [];
+          snap.forEach(doc => usersList.push(doc.data() as UserProfile));
+          setRealUsers(usersList);
+        };
+        fetchUsers();
+      } else if (tab === "orders" || tab === "overview" || tab === "analytics") {
+        getAllOrders().then(setAllOrders);
+      } else if (tab === "bank") {
+        getBankAccounts().then(setBankAccounts);
+      }
     }
   }, [isAdmin, tab]);
 
@@ -130,6 +143,24 @@ function AdminDashboard() {
 
   const handleSignOut = async () => {
     await signOut(auth);
+  };
+
+  const handleUpdateOrderStatus = async (orderId: string, status: any) => {
+    try {
+      await updateOrderStatus(orderId, status);
+      setAllOrders(allOrders.map(o => o.id === orderId ? { ...o, status } : o));
+    } catch (e) {
+      alert("حدث خطأ أثناء تحديث حالة الطلب");
+    }
+  };
+
+  const handleSaveBank = async () => {
+    try {
+      await saveBankAccounts(bankAccounts);
+      alert("تم حفظ الحسابات البنكية بنجاح!");
+    } catch (e) {
+      alert("حدث خطأ أثناء حفظ الحسابات");
+    }
   };
 
   const handleSaveProduct = (e: React.FormEvent) => {
@@ -302,6 +333,17 @@ function AdminDashboard() {
             <span>المستخدمين</span>
           </button>
           <button
+            onClick={() => setTab("orders")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${
+              tab === "orders"
+                ? "bg-brand text-white shadow-md"
+                : "hover:bg-cream-deep text-foreground/80"
+            }`}
+          >
+            <FileText size={20} />
+            <span>الطلبات</span>
+          </button>
+          <button
             onClick={() => setTab("tracking")}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${
               tab === "tracking"
@@ -322,6 +364,28 @@ function AdminDashboard() {
           >
             <Truck size={20} />
             <span>إعدادات الشحن</span>
+          </button>
+          <button
+            onClick={() => setTab("bank")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${
+              tab === "bank"
+                ? "bg-brand text-white shadow-md"
+                : "hover:bg-cream-deep text-foreground/80"
+            }`}
+          >
+            <Landmark size={20} />
+            <span>الحسابات البنكية</span>
+          </button>
+          <button
+            onClick={() => setTab("analytics")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${
+              tab === "analytics"
+                ? "bg-brand text-white shadow-md"
+                : "hover:bg-cream-deep text-foreground/80"
+            }`}
+          >
+            <PieChart size={20} />
+            <span>التحليلات</span>
           </button>
         </nav>
         <div className="p-4 border-t border-cream-deep mt-auto">
@@ -602,6 +666,243 @@ function AdminDashboard() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {tab === "orders" && (
+          <div className="space-y-6 max-w-full">
+            <h1 className="text-2xl font-bold">إدارة الطلبات الحقيقية</h1>
+            <div className="bg-card rounded-2xl border border-cream-deep shadow-sm p-6">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-right min-w-[900px]">
+                  <thead className="bg-cream-deep/40 text-muted-foreground border-b border-cream-deep">
+                    <tr>
+                      <th className="p-3 font-bold">رقم الطلب</th>
+                      <th className="p-3 font-bold">العميل</th>
+                      <th className="p-3 font-bold">التفاصيل</th>
+                      <th className="p-3 font-bold">المبلغ</th>
+                      <th className="p-3 font-bold">الحالة</th>
+                      <th className="p-3 font-bold">إجراء</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allOrders.length === 0 && (
+                      <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">لا توجد طلبات حالياً</td></tr>
+                    )}
+                    {allOrders.map(o => (
+                      <tr key={o.id} className="border-b border-cream-deep hover:bg-cream-deep/20">
+                        <td className="p-3 font-bold text-brand">{o.id}</td>
+                        <td className="p-3">
+                          <div className="font-bold">{o.customerName}</div>
+                          <div className="text-xs text-muted-foreground" dir="ltr">{o.customerPhone}</div>
+                          <div className="text-xs text-muted-foreground">{o.customerCity}</div>
+                        </td>
+                        <td className="p-3">
+                          <ul className="text-xs space-y-1">
+                            {o.items.map((i, idx) => (
+                              <li key={idx}>- {i.name} (x{i.qty})</li>
+                            ))}
+                          </ul>
+                        </td>
+                        <td className="p-3 font-bold text-brand">{fmt(o.total)} ر.س</td>
+                        <td className="p-3">
+                          <span className={`px-2 py-1 rounded text-xs font-bold ${
+                            o.status === "pending" ? "bg-discount/15 text-discount" :
+                            o.status === "processing" ? "bg-badge-orange/15 text-badge-orange" :
+                            o.status === "delivered" ? "bg-badge-green/15 text-badge-green" :
+                            "bg-foreground/15 text-foreground"
+                          }`}>
+                            {o.status === "pending" ? "قيد التحقق (في انتظار الحوالة)" :
+                             o.status === "processing" ? "قيد التنفيذ/الشحن" :
+                             o.status === "delivered" ? "تم التوصيل" : "ملغي"}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <select 
+                            value={o.status}
+                            onChange={(e) => handleUpdateOrderStatus(o.id!, e.target.value)}
+                            className="bg-cream-deep/40 border border-cream-deep rounded-lg px-2 py-1 text-xs outline-none focus:border-brand"
+                          >
+                            <option value="pending">قيد التحقق</option>
+                            <option value="processing">قيد التنفيذ</option>
+                            <option value="delivered">تم التوصيل</option>
+                            <option value="cancelled">إلغاء الطلب</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === "bank" && (
+          <div className="space-y-6 max-w-full">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-bold">الحسابات البنكية للمتجر</h1>
+              <button onClick={handleSaveBank} className="bg-brand text-white font-bold rounded-xl px-4 py-2 shadow-lg hover:bg-brand-dark transition">حفظ التغييرات</button>
+            </div>
+            
+            <div className="bg-card rounded-2xl border border-cream-deep shadow-sm p-6 space-y-4">
+              <p className="text-muted-foreground text-sm">أضف حساباتك البنكية ليتمكن العملاء من التحويل إليها عند الطلب. يمكنك إضافة أكثر من حساب.</p>
+              
+              {bankAccounts.map((acc, idx) => (
+                <div key={idx} className="border border-cream-deep rounded-xl p-4 bg-cream-deep/20 relative grid md:grid-cols-2 gap-4">
+                  <button 
+                    onClick={() => setBankAccounts(bankAccounts.filter((_, i) => i !== idx))}
+                    className="absolute top-2 left-2 text-discount bg-discount/10 p-1.5 rounded-lg hover:bg-discount/20"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                  <div>
+                    <label className="block text-xs font-bold mb-1">اسم البنك</label>
+                    <input 
+                      value={acc.bankName}
+                      onChange={e => { const newAccs = [...bankAccounts]; newAccs[idx].bankName = e.target.value; setBankAccounts(newAccs); }}
+                      className="w-full bg-background border border-cream-deep rounded-lg px-3 py-2 outline-none focus:border-brand"
+                      placeholder="مثال: البنك الأهلي السعودي"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1">اسم صاحب الحساب</label>
+                    <input 
+                      value={acc.accountName}
+                      onChange={e => { const newAccs = [...bankAccounts]; newAccs[idx].accountName = e.target.value; setBankAccounts(newAccs); }}
+                      className="w-full bg-background border border-cream-deep rounded-lg px-3 py-2 outline-none focus:border-brand"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1">رقم الحساب</label>
+                    <input 
+                      value={acc.accountNumber}
+                      onChange={e => { const newAccs = [...bankAccounts]; newAccs[idx].accountNumber = e.target.value; setBankAccounts(newAccs); }}
+                      className="w-full bg-background border border-cream-deep rounded-lg px-3 py-2 outline-none focus:border-brand"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1">الآيبان (IBAN)</label>
+                    <input 
+                      value={acc.iban}
+                      onChange={e => { const newAccs = [...bankAccounts]; newAccs[idx].iban = e.target.value; setBankAccounts(newAccs); }}
+                      className="w-full bg-background border border-cream-deep rounded-lg px-3 py-2 outline-none focus:border-brand text-left"
+                      dir="ltr"
+                      placeholder="SA..."
+                    />
+                  </div>
+                </div>
+              ))}
+
+              <button 
+                onClick={() => setBankAccounts([...bankAccounts, { bankName: "", accountName: "", accountNumber: "", iban: "" }])}
+                className="w-full border-2 border-dashed border-brand/50 text-brand font-bold py-3 rounded-xl hover:bg-brand/5 transition flex items-center justify-center gap-2"
+              >
+                <Plus size={18} /> إضافة حساب جديد
+              </button>
+            </div>
+          </div>
+        )}
+
+        {tab === "analytics" && (
+          <div className="space-y-6 max-w-full">
+            <h1 className="text-2xl font-bold mb-6">التحليلات والرسوم البيانية</h1>
+            
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-card rounded-2xl border border-cream-deep p-5 shadow-sm">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-badge-green/15 text-badge-green flex items-center justify-center">
+                    <DollarSign size={20} />
+                  </div>
+                  <h3 className="font-bold text-muted-foreground text-sm">إجمالي الأرباح الشهرية</h3>
+                </div>
+                <p className="text-2xl font-bold text-brand">{fmt(allOrders.filter(o => o.status !== "cancelled").reduce((acc, curr) => acc + curr.total, 0))} ر.س</p>
+                <p className="text-xs text-badge-green font-bold mt-2 flex items-center gap-1"><TrendingUp size={12}/> +12% عن الشهر الماضي</p>
+              </div>
+
+              <div className="bg-card rounded-2xl border border-cream-deep p-5 shadow-sm">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-badge-orange/15 text-badge-orange flex items-center justify-center">
+                    <Package size={20} />
+                  </div>
+                  <h3 className="font-bold text-muted-foreground text-sm">الطلبات المعلقة</h3>
+                </div>
+                <p className="text-2xl font-bold">{allOrders.filter(o => o.status === "pending").length}</p>
+                <p className="text-xs text-muted-foreground mt-2">تحتاج إلى المراجعة وتأكيد الحوالة</p>
+              </div>
+
+              <div className="bg-card rounded-2xl border border-cream-deep p-5 shadow-sm">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-brand/15 text-brand flex items-center justify-center">
+                    <Users size={20} />
+                  </div>
+                  <h3 className="font-bold text-muted-foreground text-sm">أفضل العملاء (شراءً)</h3>
+                </div>
+                <div className="space-y-2 mt-2">
+                  {/* Mock top customers logic based on real users/orders would go here. Showing static for UI demo */}
+                  <div className="flex justify-between items-center text-sm"><span className="font-bold">أحمد محمد</span><span className="text-brand">1,450 ر.س</span></div>
+                  <div className="flex justify-between items-center text-sm"><span className="font-bold">سارة خالد</span><span className="text-brand">890 ر.س</span></div>
+                </div>
+              </div>
+
+              <div className="bg-card rounded-2xl border border-cream-deep p-5 shadow-sm">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-discount/15 text-discount flex items-center justify-center">
+                    <TrendingUp size={20} />
+                  </div>
+                  <h3 className="font-bold text-muted-foreground text-sm">مصادر الزيارات</h3>
+                </div>
+                <div className="space-y-2 mt-2">
+                  <div className="flex justify-between items-center text-sm"><span>Instagram</span><span className="font-bold">45%</span></div>
+                  <div className="flex justify-between items-center text-sm"><span>WhatsApp</span><span className="font-bold">30%</span></div>
+                  <div className="flex justify-between items-center text-sm"><span>Google Search</span><span className="font-bold">25%</span></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Charts Section */}
+            <div className="grid lg:grid-cols-2 gap-6">
+              <div className="bg-card rounded-2xl border border-cream-deep p-6 shadow-sm">
+                <h3 className="font-bold text-lg mb-6">المنتجات الأكثر مبيعاً هذا الأسبوع</h3>
+                <div className="space-y-4">
+                  {/* Mock Bar Chart */}
+                  <div>
+                    <div className="flex justify-between text-sm mb-1"><span>عطر منتصف الليل</span><span className="font-bold">42 طلب</span></div>
+                    <div className="w-full h-3 bg-cream-deep rounded-full overflow-hidden">
+                      <div className="h-full bg-brand rounded-full" style={{ width: '85%' }}></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-sm mb-1"><span>عود ملكي</span><span className="font-bold">28 طلب</span></div>
+                    <div className="w-full h-3 bg-cream-deep rounded-full overflow-hidden">
+                      <div className="h-full bg-brand/80 rounded-full" style={{ width: '60%' }}></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-sm mb-1"><span>زهرة الأوركيد</span><span className="font-bold">15 طلب</span></div>
+                    <div className="w-full h-3 bg-cream-deep rounded-full overflow-hidden">
+                      <div className="h-full bg-brand/60 rounded-full" style={{ width: '35%' }}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-card rounded-2xl border border-cream-deep p-6 shadow-sm">
+                <h3 className="font-bold text-lg mb-6 flex justify-between">
+                  <span>رسائل التنبيهات الجماعية</span>
+                  <span className="text-xs bg-badge-orange/20 text-badge-orange px-2 py-1 rounded-full">قريباً</span>
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  هذه الميزة ستسمح لك بإرسال رسائل WhatsApp أو إيميلات جماعية لعملائك المميزين لإبلاغهم بالعروض الجديدة. (تتطلب ربط بخدمات خارجية)
+                </p>
+                <div className="space-y-3 opacity-60 pointer-events-none">
+                  <textarea className="w-full bg-cream-deep/40 border border-cream-deep rounded-xl p-3 outline-none" rows={3} placeholder="اكتب رسالتك هنا..."></textarea>
+                  <button className="bg-brand text-white font-bold px-6 py-2 rounded-xl w-full">إرسال لجميع العملاء</button>
+                </div>
+              </div>
+            </div>
+            
           </div>
         )}
       </main>

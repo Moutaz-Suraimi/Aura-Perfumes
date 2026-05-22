@@ -30,7 +30,7 @@ import {
   sendEmailVerification
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { createUserProfile, getUserProfile, UserProfile } from "@/lib/db";
+import { createUserProfile, getUserProfile, updateUserProfile, getUserOrders, UserProfile, Order } from "@/lib/db";
 
 export const Route = createFileRoute("/account")({
   head: () => ({
@@ -91,11 +91,14 @@ const statusMeta = {
     icon: CheckCircle2,
   },
   processing: { label: "قيد التنفيذ", color: "bg-badge-orange/15 text-badge-orange", icon: Clock },
+  pending: { label: "قيد التحقق", color: "bg-discount/15 text-discount", icon: Clock },
+  cancelled: { label: "ملغي", color: "bg-foreground/15 text-foreground", icon: Clock },
 };
 
 function AccountDashboard() {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userOrders, setUserOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [tab, setTab] = useState<Tab>("profile");
@@ -114,6 +117,8 @@ function AccountDashboard() {
         try {
           const profile = await getUserProfile(u.uid);
           setUserProfile(profile);
+          const orders = await getUserOrders(u.uid);
+          setUserOrders(orders);
         } catch (error) {
           console.error("Error fetching user profile:", error);
           setUserProfile(null);
@@ -357,8 +362,8 @@ function AccountDashboard() {
         </div>
 
         <div className="flex-1 space-y-6">
-          {tab === "profile" && <ProfileTab profile={userProfile} firebaseUser={firebaseUser} />}
-          {tab === "orders" && <OrdersTab />}
+          {tab === "profile" && <ProfileTab profile={userProfile} firebaseUser={firebaseUser} setProfile={setUserProfile} />}
+          {tab === "orders" && <OrdersTab orders={userOrders} />}
           {tab === "tracking" && <TrackingTab />}
           {tab === "shipping" && <ShippingTab />}
           {tab === "addresses" && <AddressesTab />}
@@ -400,7 +405,63 @@ function Field({ label, value, icon: Icon }: { label: string; value: string; ico
   );
 }
 
-function ProfileTab({ profile, firebaseUser }: { profile: UserProfile | null, firebaseUser: FirebaseUser }) {
+function ProfileTab({ profile, firebaseUser, setProfile }: { profile: UserProfile | null, firebaseUser: FirebaseUser, setProfile: (p: UserProfile) => void }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [name, setName] = useState(profile?.name || "");
+  const [phone, setPhone] = useState(profile?.phone || "");
+  const [city, setCity] = useState(profile?.city || "");
+  const [country, setCountry] = useState(profile?.country || "");
+  const [loading, setLoading] = useState(false);
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      const updates = { name, phone, city, country };
+      await updateUserProfile(firebaseUser.uid, updates);
+      setProfile({ ...profile!, ...updates });
+      setIsEditing(false);
+    } catch (e) {
+      alert("حدث خطأ أثناء الحفظ");
+    }
+    setLoading(false);
+  };
+
+  if (isEditing) {
+    return (
+      <Card>
+        <h2 className="text-xl font-bold mb-5">تعديل البيانات</h2>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-bold mb-1.5">الاسم الكامل</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full bg-cream-deep/40 border border-cream-deep rounded-xl px-4 py-3 outline-none focus:border-brand" />
+          </div>
+          <div>
+            <label className="block text-sm font-bold mb-1.5">رقم الجوال</label>
+            <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="w-full bg-cream-deep/40 border border-cream-deep rounded-xl px-4 py-3 outline-none focus:border-brand text-left" dir="ltr" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-bold mb-1.5">المدينة</label>
+              <input type="text" value={city} onChange={e => setCity(e.target.value)} className="w-full bg-cream-deep/40 border border-cream-deep rounded-xl px-4 py-3 outline-none focus:border-brand" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-1.5">الدولة</label>
+              <input type="text" value={country} onChange={e => setCountry(e.target.value)} className="w-full bg-cream-deep/40 border border-cream-deep rounded-xl px-4 py-3 outline-none focus:border-brand" />
+            </div>
+          </div>
+        </div>
+        <div className="mt-6 flex gap-3">
+          <button onClick={handleSave} disabled={loading} className="bg-brand hover:bg-brand-dark text-white font-bold rounded-xl px-6 py-3 shadow-lg transition-colors disabled:opacity-50">
+            {loading ? "جاري الحفظ..." : "حفظ التغييرات"}
+          </button>
+          <button onClick={() => setIsEditing(false)} className="bg-cream-deep hover:bg-cream-deep/80 text-foreground font-bold rounded-xl px-6 py-3 transition-colors">
+            إلغاء
+          </button>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <h2 className="text-xl font-bold mb-5">المعلومات الشخصية</h2>
@@ -408,27 +469,41 @@ function ProfileTab({ profile, firebaseUser }: { profile: UserProfile | null, fi
         <Field label="الاسم الكامل" value={profile?.name || "غير محدد"} icon={User} />
         <Field label="البريد الإلكتروني" value={firebaseUser.email || ""} icon={Mail} />
         <Field label="رقم الجوال" value={profile?.phone || "غير محدد"} icon={Phone} />
-        <Field label="المنطقة" value={profile?.city ? `${profile.city} - ${profile.country}` : "غير محدد"} icon={MapPin} />
+        <Field label="المنطقة" value={profile?.city ? `${profile.city} ${profile.country ? "- " + profile.country : ""}` : "غير محدد"} icon={MapPin} />
       </div>
-      <button className="mt-6 bg-brand hover:bg-brand-dark text-white font-bold rounded-xl px-6 py-3 shadow-lg w-full md:w-auto transition-colors">
+      <button onClick={() => setIsEditing(true)} className="mt-6 bg-brand hover:bg-brand-dark text-white font-bold rounded-xl px-6 py-3 shadow-lg w-full md:w-auto transition-colors">
         تحديث البيانات
       </button>
     </Card>
   );
 }
 
-function OrdersTab() {
+function OrdersTab({ orders }: { orders: Order[] }) {
+  if (orders.length === 0) {
+    return (
+      <Card className="text-center py-12">
+        <div className="w-16 h-16 bg-cream-deep/50 text-brand rounded-full flex items-center justify-center mx-auto mb-4">
+          <Package size={32} />
+        </div>
+        <h3 className="font-bold text-lg mb-2">لا توجد طلبات سابقة</h3>
+        <p className="text-muted-foreground text-sm">قم بتصفح منتجاتنا واطلب الآن!</p>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold px-1">الطلبات السابقة ({orders.length})</h2>
       {orders.map((o) => {
-        const S = statusMeta[o.status];
+        const S = statusMeta[o.status] || { label: "غير معروف", color: "bg-gray-100 text-gray-500", icon: Package };
         return (
           <Card key={o.id}>
             <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-cream-deep">
               <div>
-                <p className="font-bold">رقم الطلب {o.id}</p>
-                <p className="text-xs text-muted-foreground mt-1">بتاريخ {o.date}</p>
+                <p className="font-bold text-brand">رقم الطلب: {o.id}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  بتاريخ {o.createdAt ? new Date(o.createdAt.toMillis()).toLocaleDateString('ar-SA') : "الآن"}
+                </p>
               </div>
               <span
                 className={`${S.color} text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5`}
@@ -437,19 +512,19 @@ function OrdersTab() {
               </span>
             </div>
             <div className="py-4 space-y-3">
-              {o.items.map(({ product, qty }) => (
-                <div key={product.id} className="flex items-center gap-3">
+              {o.items.map((item, idx) => (
+                <div key={idx} className="flex items-center gap-3">
                   <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-14 h-14 object-contain bg-cream-deep/40 rounded-lg"
+                    src={item.image}
+                    alt={item.name}
+                    className="w-14 h-14 object-contain bg-cream-deep/40 rounded-lg shrink-0"
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold line-clamp-1">{product.name}</p>
-                    <p className="text-xs text-muted-foreground">الكمية: {qty}</p>
+                    <p className="text-sm font-bold line-clamp-1">{item.name}</p>
+                    <p className="text-xs text-muted-foreground">الكمية: {item.qty}</p>
                   </div>
                   <span className="text-brand font-bold text-sm">
-                    {fmt(product.price * qty)} ر.س
+                    {fmt(item.price * item.qty)} ر.س
                   </span>
                 </div>
               ))}
