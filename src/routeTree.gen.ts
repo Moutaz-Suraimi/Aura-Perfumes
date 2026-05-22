@@ -9,16 +9,34 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ReturnPolicyRouteImport } from './routes/return-policy'
 import { Route as ProductsRouteImport } from './routes/products'
+import { Route as FaqRouteImport } from './routes/faq'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductsIdRouteImport } from './routes/products.$id'
 
+const ReturnPolicyRoute = ReturnPolicyRouteImport.update({
+  id: '/return-policy',
+  path: '/return-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProductsRoute = ProductsRouteImport.update({
   id: '/products',
   path: '/products',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CartRoute = CartRouteImport.update({
@@ -52,7 +70,10 @@ export interface FileRoutesByFullPath {
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
   '/cart': typeof CartRoute
+  '/contact': typeof ContactRoute
+  '/faq': typeof FaqRoute
   '/products': typeof ProductsRouteWithChildren
+  '/return-policy': typeof ReturnPolicyRoute
   '/products/$id': typeof ProductsIdRoute
 }
 export interface FileRoutesByTo {
@@ -60,7 +81,10 @@ export interface FileRoutesByTo {
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
   '/cart': typeof CartRoute
+  '/contact': typeof ContactRoute
+  '/faq': typeof FaqRoute
   '/products': typeof ProductsRouteWithChildren
+  '/return-policy': typeof ReturnPolicyRoute
   '/products/$id': typeof ProductsIdRoute
 }
 export interface FileRoutesById {
@@ -69,7 +93,10 @@ export interface FileRoutesById {
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
   '/cart': typeof CartRoute
+  '/contact': typeof ContactRoute
+  '/faq': typeof FaqRoute
   '/products': typeof ProductsRouteWithChildren
+  '/return-policy': typeof ReturnPolicyRoute
   '/products/$id': typeof ProductsIdRoute
 }
 export interface FileRouteTypes {
@@ -79,17 +106,32 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/cart'
+    | '/contact'
+    | '/faq'
     | '/products'
+    | '/return-policy'
     | '/products/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/account' | '/admin' | '/cart' | '/products' | '/products/$id'
+  to:
+    | '/'
+    | '/account'
+    | '/admin'
+    | '/cart'
+    | '/contact'
+    | '/faq'
+    | '/products'
+    | '/return-policy'
+    | '/products/$id'
   id:
     | '__root__'
     | '/'
     | '/account'
     | '/admin'
     | '/cart'
+    | '/contact'
+    | '/faq'
     | '/products'
+    | '/return-policy'
     | '/products/$id'
   fileRoutesById: FileRoutesById
 }
@@ -98,16 +140,40 @@ export interface RootRouteChildren {
   AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRoute
   CartRoute: typeof CartRoute
+  ContactRoute: typeof ContactRoute
+  FaqRoute: typeof FaqRoute
   ProductsRoute: typeof ProductsRouteWithChildren
+  ReturnPolicyRoute: typeof ReturnPolicyRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/return-policy': {
+      id: '/return-policy'
+      path: '/return-policy'
+      fullPath: '/return-policy'
+      preLoaderRoute: typeof ReturnPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/products': {
       id: '/products'
       path: '/products'
       fullPath: '/products'
       preLoaderRoute: typeof ProductsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cart': {
@@ -165,18 +231,11 @@ const rootRouteChildren: RootRouteChildren = {
   AccountRoute: AccountRoute,
   AdminRoute: AdminRoute,
   CartRoute: CartRoute,
+  ContactRoute: ContactRoute,
+  FaqRoute: FaqRoute,
   ProductsRoute: ProductsRouteWithChildren,
+  ReturnPolicyRoute: ReturnPolicyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

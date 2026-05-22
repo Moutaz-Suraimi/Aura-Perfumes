@@ -12,9 +12,16 @@ import {
   Edit,
   Trash2,
   X,
+  Truck,
+  MapPin,
 } from "lucide-react";
 import { allProducts, type Product } from "@/data/products";
 import { fmt } from "@/lib/cart";
+import { useEffect } from "react";
+import { signInWithEmailAndPassword, onAuthStateChanged, signOut, User as FirebaseUser } from "firebase/auth";
+import { collection, getDocs, query } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
+import { getUserProfile, UserProfile } from "@/lib/db";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -26,46 +33,19 @@ export const Route = createFileRoute("/admin")({
   component: AdminDashboard,
 });
 
-type AdminTab = "overview" | "products" | "users";
-
-const mockUsers = [
-  {
-    id: 1,
-    name: "أحمد محمد",
-    email: "ahmed@example.com",
-    phone: "+966-500000001",
-    date: "2026/05/15",
-    orders: 3,
-  },
-  {
-    id: 2,
-    name: "سالم عبدالله",
-    email: "salim@example.com",
-    phone: "+966-500000002",
-    date: "2026/05/10",
-    orders: 1,
-  },
-  {
-    id: 3,
-    name: "فاطمة علي",
-    email: "fatima@example.com",
-    phone: "+966-500000003",
-    date: "2026/04/28",
-    orders: 5,
-  },
-  {
-    id: 4,
-    name: "عمر خالد",
-    email: "omar@example.com",
-    phone: "+966-500000004",
-    date: "2026/04/12",
-    orders: 0,
-  },
-];
+type AdminTab = "overview" | "products" | "users" | "tracking" | "shipping";
 
 function AdminDashboard() {
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
+
   const [tab, setTab] = useState<AdminTab>("overview");
+  const [realUsers, setRealUsers] = useState<UserProfile[]>([]);
+
+  const [email, setEmail] = useState("waelmoutaz297@gmail.com");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   // Local state for products to simulate adding/editing without a real DB yet
   const [products, setProducts] = useState<Product[]>(allProducts);
@@ -85,6 +65,51 @@ function AdminDashboard() {
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      setFirebaseUser(u);
+      if (u) {
+        const profile = await getUserProfile(u.uid);
+        if (profile?.role === "admin" || u.email === "waelmoutaz297@gmail.com") {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
+      } else {
+        setIsAdmin(false);
+      }
+      setLoading(false);
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    if (isAdmin && tab === "users") {
+      const fetchUsers = async () => {
+        const q = query(collection(db, "users"));
+        const snap = await getDocs(q);
+        const usersList: UserProfile[] = [];
+        snap.forEach(doc => usersList.push(doc.data() as UserProfile));
+        setRealUsers(usersList);
+      };
+      fetchUsers();
+    }
+  }, [isAdmin, tab]);
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+  };
 
   const handleSaveProduct = (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,7 +179,11 @@ function AdminDashboard() {
     }
   };
 
-  if (!isAdminLoggedIn) {
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center font-bold">جاري التحميل...</div>;
+  }
+
+  if (!isAdmin) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-md bg-card rounded-3xl border border-cream-deep p-8 shadow-xl">
@@ -167,20 +196,16 @@ function AdminDashboard() {
               أدخل بيانات الاعتماد للوصول للإدارة
             </p>
           </div>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              setIsAdminLoggedIn(true);
-            }}
-            className="space-y-4"
-          >
+          {error && <div className="bg-discount/10 text-discount p-3 rounded-xl mb-4 text-sm font-bold">{error}</div>}
+          <form onSubmit={handleAuth} className="space-y-4">
             <div>
               <label className="block text-sm font-bold mb-1.5">البريد الإلكتروني</label>
               <div className="relative">
                 <input
                   type="email"
                   required
-                  defaultValue="admin@store.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-cream-deep/40 border border-cream-deep rounded-xl px-4 py-3 pr-11 outline-none focus:border-brand"
                 />
                 <Mail
@@ -195,7 +220,8 @@ function AdminDashboard() {
                 <input
                   type="password"
                   required
-                  defaultValue="admin123"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full bg-cream-deep/40 border border-cream-deep rounded-xl px-4 py-3 pr-11 outline-none focus:border-brand"
                 />
                 <Lock
@@ -254,10 +280,32 @@ function AdminDashboard() {
             <Users size={20} />
             <span>المستخدمين</span>
           </button>
+          <button
+            onClick={() => setTab("tracking")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${
+              tab === "tracking"
+                ? "bg-brand text-white shadow-md"
+                : "hover:bg-cream-deep text-foreground/80"
+            }`}
+          >
+            <MapPin size={20} />
+            <span>تتبع الطلبات</span>
+          </button>
+          <button
+            onClick={() => setTab("shipping")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${
+              tab === "shipping"
+                ? "bg-brand text-white shadow-md"
+                : "hover:bg-cream-deep text-foreground/80"
+            }`}
+          >
+            <Truck size={20} />
+            <span>إعدادات الشحن</span>
+          </button>
         </nav>
         <div className="p-4 border-t border-cream-deep mt-auto">
           <button
-            onClick={() => setIsAdminLoggedIn(false)}
+            onClick={handleSignOut}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-discount hover:bg-discount/10 transition-colors"
           >
             <LogOut size={20} />
@@ -275,7 +323,7 @@ function AdminDashboard() {
               <StatCard title="إجمالي الإيرادات" value="45,230 ر.س" icon={LayoutDashboard} />
               <StatCard title="عدد الطلبات" value="124" icon={Package} />
               <StatCard title="المنتجات النشطة" value={products.length.toString()} icon={Package} />
-              <StatCard title="المستخدمين" value={mockUsers.length.toString()} icon={Users} />
+              <StatCard title="المستخدمين" value={realUsers.length.toString()} icon={Users} />
             </div>
           </div>
         )}
@@ -408,22 +456,129 @@ function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {mockUsers.map((u) => (
+                    {realUsers.length === 0 ? (
+                      <tr><td colSpan={5} className="p-4 text-center">لا يوجد مستخدمين بعد</td></tr>
+                    ) : realUsers.map((u) => (
                       <tr
-                        key={u.id}
+                        key={u.uid}
                         className="border-b border-cream-deep last:border-0 hover:bg-cream-deep/20"
                       >
                         <td className="p-3 font-bold">{u.name}</td>
                         <td className="p-3 text-muted-foreground">{u.email}</td>
                         <td className="p-3 text-muted-foreground" dir="ltr">
-                          {u.phone}
+                          {u.phone || "غير محدد"}
                         </td>
-                        <td className="p-3 text-muted-foreground">{u.date}</td>
-                        <td className="p-3 font-bold">{u.orders}</td>
+                        <td className="p-3 text-muted-foreground">
+                           {u.createdAt?.toDate ? u.createdAt.toDate().toLocaleDateString('ar-SA') : "جديد"}
+                        </td>
+                        <td className="p-3 font-bold">0</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === "tracking" && (
+          <div className="space-y-6 max-w-full">
+            <h1 className="text-2xl font-bold">إدارة تتبع الطلبات</h1>
+            <div className="bg-card rounded-2xl border border-cream-deep shadow-sm p-6">
+              <p className="text-muted-foreground mb-6">قم بتحديث حالة شحنات العملاء أو إضافة أرقام التتبع لشركات الشحن.</p>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-right min-w-[700px]">
+                  <thead className="bg-cream-deep/40 text-muted-foreground border-b border-cream-deep">
+                    <tr>
+                      <th className="p-3 font-bold">رقم الطلب</th>
+                      <th className="p-3 font-bold">العميل</th>
+                      <th className="p-3 font-bold">الحالة الحالية</th>
+                      <th className="p-3 font-bold">تحديث الحالة</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-cream-deep hover:bg-cream-deep/20">
+                      <td className="p-3 font-bold">#ORD-88219</td>
+                      <td className="p-3">أحمد محمد</td>
+                      <td className="p-3"><span className="bg-badge-orange/15 text-badge-orange px-2 py-1 rounded text-xs font-bold">قيد التوصيل</span></td>
+                      <td className="p-3">
+                        <select className="bg-cream-deep/40 border border-cream-deep rounded-lg px-2 py-1 text-xs">
+                          <option>قيد التوصيل</option>
+                          <option>تم التوصيل</option>
+                          <option>مسترجع</option>
+                        </select>
+                      </td>
+                    </tr>
+                    <tr className="border-b border-cream-deep hover:bg-cream-deep/20">
+                      <td className="p-3 font-bold">#ORD-88220</td>
+                      <td className="p-3">فاطمة علي</td>
+                      <td className="p-3"><span className="bg-brand/15 text-brand px-2 py-1 rounded text-xs font-bold">جاري التجهيز</span></td>
+                      <td className="p-3">
+                        <select className="bg-cream-deep/40 border border-cream-deep rounded-lg px-2 py-1 text-xs">
+                          <option>جاري التجهيز</option>
+                          <option>تم الشحن</option>
+                          <option>ملغي</option>
+                        </select>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === "shipping" && (
+          <div className="space-y-6 max-w-full">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-bold">إعدادات الشحن والتوصيل</h1>
+              <button className="bg-brand text-white font-bold rounded-xl px-4 py-2 shadow-lg">حفظ التغييرات</button>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-card rounded-2xl border border-cream-deep shadow-sm p-6">
+                <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><MapPin className="text-brand"/> مناطق التوصيل</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-cream-deep pb-3">
+                    <div>
+                      <p className="font-bold">الرياض</p>
+                      <p className="text-xs text-muted-foreground">توصيل سريع</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input type="number" defaultValue="25" className="w-16 bg-cream-deep/40 border border-cream-deep rounded-lg px-2 py-1 text-center" />
+                      <span className="text-xs">ر.س</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-cream-deep pb-3">
+                    <div>
+                      <p className="font-bold">باقي مدن المملكة</p>
+                      <p className="text-xs text-muted-foreground">3 - 5 أيام</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input type="number" defaultValue="35" className="w-16 bg-cream-deep/40 border border-cream-deep rounded-lg px-2 py-1 text-center" />
+                      <span className="text-xs">ر.س</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-card rounded-2xl border border-cream-deep shadow-sm p-6">
+                <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Truck className="text-brand"/> شركات الشحن المرتبطة</h3>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 p-3 border border-brand bg-brand/5 rounded-xl cursor-pointer">
+                    <input type="checkbox" defaultChecked className="accent-brand" />
+                    <span className="font-bold">أرامكس (Aramex)</span>
+                  </label>
+                  <label className="flex items-center gap-3 p-3 border border-cream-deep rounded-xl cursor-pointer hover:bg-cream-deep/20">
+                    <input type="checkbox" defaultChecked className="accent-brand" />
+                    <span className="font-bold">سمسا (SMSA)</span>
+                  </label>
+                  <label className="flex items-center gap-3 p-3 border border-cream-deep rounded-xl cursor-pointer hover:bg-cream-deep/20">
+                    <input type="checkbox" className="accent-brand" />
+                    <span className="font-bold">مندوب خاص (داخل الرياض)</span>
+                  </label>
+                </div>
               </div>
             </div>
           </div>

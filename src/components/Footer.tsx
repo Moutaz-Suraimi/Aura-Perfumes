@@ -85,29 +85,29 @@ export function Footer() {
         <Card title="خدمة العملاء">
           <ul className="space-y-3 text-white/70 text-sm">
             <li>
-              <a href="#" className="hover:text-brand transition">
+              <Link to="/account" className="hover:text-brand transition">
                 تتبع الطلب
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="#" className="hover:text-brand transition">
+              <Link to="/account" className="hover:text-brand transition">
                 الشحن والتوصيل
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="#" className="hover:text-brand transition">
+              <Link to="/return-policy" className="hover:text-brand transition">
                 سياسة الاسترجاع
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="#" className="hover:text-brand transition">
+              <Link to="/faq" className="hover:text-brand transition">
                 الأسئلة الشائعة
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="#" className="hover:text-brand transition">
+              <Link to="/contact" className="hover:text-brand transition">
                 تواصل معنا
-              </a>
+              </Link>
             </li>
           </ul>
         </Card>

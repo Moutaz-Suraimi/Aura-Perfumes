@@ -13,9 +13,15 @@ import {
   Phone,
   Mail,
   Copy,
+  Truck,
+  Search,
 } from "lucide-react";
 import { featuredProduct, type Product } from "@/data/products";
 import { fmt } from "@/lib/cart";
+import { useEffect } from "react";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, User as FirebaseUser } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { createUserProfile, getUserProfile, UserProfile } from "@/lib/db";
 
 export const Route = createFileRoute("/account")({
   head: () => ({
@@ -27,15 +33,7 @@ export const Route = createFileRoute("/account")({
   component: AccountDashboard,
 });
 
-type Tab = "profile" | "orders" | "addresses" | "wishlist";
-
-const user = {
-  name: "أحمد محمد",
-  email: "ahmed@example.com",
-  phone: "+966 50 000 0000",
-  city: "الرياض",
-  country: "السعودية",
-};
+type Tab = "profile" | "orders" | "tracking" | "shipping" | "addresses" | "wishlist";
 
 const orders = [
   {
@@ -87,10 +85,57 @@ const statusMeta = {
 };
 
 function AccountDashboard() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+
   const [tab, setTab] = useState<Tab>("profile");
 
-  if (!isLoggedIn) {
+  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      setFirebaseUser(u);
+      if (u) {
+        const profile = await getUserProfile(u.uid);
+        setUserProfile(profile);
+      } else {
+        setUserProfile(null);
+      }
+      setLoading(false);
+    });
+    return unsub;
+  }, []);
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    try {
+      if (isLoginMode) {
+        await signInWithEmailAndPassword(auth, email, password);
+      } else {
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        await createUserProfile(cred.user.uid, { name, email });
+        // The profile will be fetched in onAuthStateChanged
+      }
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+  };
+
+  if (loading) {
+    return <div className="min-h-[70vh] flex items-center justify-center font-bold">جاري التحميل...</div>;
+  }
+
+  if (!firebaseUser) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center px-4">
         <div className="w-full max-w-md bg-card rounded-3xl border border-cream-deep p-8 shadow-xl">
@@ -98,21 +143,31 @@ function AccountDashboard() {
             <div className="w-16 h-16 bg-brand rounded-full text-white flex items-center justify-center mx-auto mb-4 shadow-lg">
               <User size={32} />
             </div>
-            <h1 className="text-2xl font-bold text-foreground">تسجيل الدخول</h1>
-            <p className="text-muted-foreground mt-2 text-sm">مرحباً بك مجدداً في أورا للعطور</p>
+            <h1 className="text-2xl font-bold text-foreground">{isLoginMode ? "تسجيل الدخول" : "إنشاء حساب"}</h1>
+            <p className="text-muted-foreground mt-2 text-sm">{isLoginMode ? "مرحباً بك مجدداً في أورا للعطور" : "انضم إلينا الآن"}</p>
           </div>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              setIsLoggedIn(true);
-            }}
-            className="space-y-4"
-          >
+          {error && <div className="bg-discount/10 text-discount p-3 rounded-xl mb-4 text-sm font-bold">{error}</div>}
+          <form onSubmit={handleAuth} className="space-y-4">
+            {!isLoginMode && (
+              <div>
+                <label className="block text-sm font-bold mb-1.5">الاسم الكامل</label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-cream-deep/40 border border-cream-deep rounded-xl px-4 py-3 outline-none focus:border-brand"
+                  placeholder="أدخل اسمك"
+                />
+              </div>
+            )}
             <div>
               <label className="block text-sm font-bold mb-1.5">البريد الإلكتروني</label>
               <input
                 type="email"
                 required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-cream-deep/40 border border-cream-deep rounded-xl px-4 py-3 outline-none focus:border-brand"
                 placeholder="أدخل بريدك الإلكتروني"
               />
@@ -122,27 +177,29 @@ function AccountDashboard() {
               <input
                 type="password"
                 required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-cream-deep/40 border border-cream-deep rounded-xl px-4 py-3 outline-none focus:border-brand"
                 placeholder="أدخل كلمة المرور"
               />
             </div>
-            <div className="flex items-center justify-between mt-2 text-sm">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="accent-brand" />
-                <span>تذكرني</span>
-              </label>
-              <a href="#" className="text-brand font-bold hover:underline">
-                نسيت كلمة المرور؟
-              </a>
-            </div>
-            <button className="w-full bg-brand hover:bg-brand-dark text-white font-bold rounded-xl py-3 shadow-lg mt-4 transition">
-              دخول
+            {isLoginMode && (
+              <div className="flex items-center justify-between mt-2 text-sm">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" className="accent-brand" />
+                  <span>تذكرني</span>
+                </label>
+                <a href="#" className="text-brand font-bold hover:underline">نسيت كلمة المرور؟</a>
+              </div>
+            )}
+            <button type="submit" className="w-full bg-brand hover:bg-brand-dark text-white font-bold rounded-xl py-3 shadow-lg mt-4 transition">
+              {isLoginMode ? "دخول" : "تسجيل حساب"}
             </button>
             <div className="text-center mt-6 text-sm text-muted-foreground">
-              ليس لديك حساب؟{" "}
-              <a href="#" className="text-brand font-bold hover:underline">
-                سجل الآن
-              </a>
+              {isLoginMode ? "ليس لديك حساب؟ " : "لديك حساب بالفعل؟ "}
+              <button type="button" onClick={() => setIsLoginMode(!isLoginMode)} className="text-brand font-bold hover:underline">
+                {isLoginMode ? "سجل الآن" : "تسجيل الدخول"}
+              </button>
             </div>
           </form>
         </div>
@@ -161,8 +218,8 @@ function AccountDashboard() {
                 <User size={24} />
               </div>
               <div>
-                <h2 className="font-bold text-lg">{user.name}</h2>
-                <p className="text-white/70 text-sm">عضو ذهبي</p>
+                <h2 className="font-bold text-lg">{userProfile?.name || firebaseUser.email}</h2>
+                <p className="text-white/70 text-sm">{userProfile?.role === "admin" ? "مدير النظام" : "عضو حالي"}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -193,6 +250,26 @@ function AccountDashboard() {
                 {tab === "orders" && <ChevronRight size={16} />}
               </button>
               <button
+                onClick={() => setTab("tracking")}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold transition-colors ${tab === "tracking" ? "bg-cream-deep/60 text-brand" : "hover:bg-cream-deep/40 text-foreground"}`}
+              >
+                <div className="flex items-center gap-3">
+                  <Search size={18} />
+                  <span>تتبع الطلب</span>
+                </div>
+                {tab === "tracking" && <ChevronRight size={16} />}
+              </button>
+              <button
+                onClick={() => setTab("shipping")}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold transition-colors ${tab === "shipping" ? "bg-cream-deep/60 text-brand" : "hover:bg-cream-deep/40 text-foreground"}`}
+              >
+                <div className="flex items-center gap-3">
+                  <Truck size={18} />
+                  <span>الشحن والتوصيل</span>
+                </div>
+                {tab === "shipping" && <ChevronRight size={16} />}
+              </button>
+              <button
                 onClick={() => setTab("addresses")}
                 className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold transition-colors ${tab === "addresses" ? "bg-cream-deep/60 text-brand" : "hover:bg-cream-deep/40 text-foreground"}`}
               >
@@ -213,7 +290,7 @@ function AccountDashboard() {
                 {tab === "wishlist" && <ChevronRight size={16} />}
               </button>
               <button
-                onClick={() => setIsLoggedIn(false)}
+                onClick={handleSignOut}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-discount hover:bg-discount/10 mt-4 transition-colors"
               >
                 <LogOut size={18} />
@@ -224,8 +301,10 @@ function AccountDashboard() {
         </div>
 
         <div className="flex-1 space-y-6">
-          {tab === "profile" && <ProfileTab />}
+          {tab === "profile" && <ProfileTab profile={userProfile} firebaseUser={firebaseUser} />}
           {tab === "orders" && <OrdersTab />}
+          {tab === "tracking" && <TrackingTab />}
+          {tab === "shipping" && <ShippingTab />}
           {tab === "addresses" && <AddressesTab />}
           {tab === "wishlist" && <WishlistTab />}
         </div>
@@ -265,15 +344,15 @@ function Field({ label, value, icon: Icon }: { label: string; value: string; ico
   );
 }
 
-function ProfileTab() {
+function ProfileTab({ profile, firebaseUser }: { profile: UserProfile | null, firebaseUser: FirebaseUser }) {
   return (
     <Card>
       <h2 className="text-xl font-bold mb-5">المعلومات الشخصية</h2>
       <div className="grid md:grid-cols-2 gap-4">
-        <Field label="الاسم الكامل" value={user.name} icon={User} />
-        <Field label="البريد الإلكتروني" value={user.email} icon={Mail} />
-        <Field label="رقم الجوال" value={user.phone} icon={Phone} />
-        <Field label="المنطقة" value={`${user.city} - ${user.country}`} icon={MapPin} />
+        <Field label="الاسم الكامل" value={profile?.name || "غير محدد"} icon={User} />
+        <Field label="البريد الإلكتروني" value={firebaseUser.email || ""} icon={Mail} />
+        <Field label="رقم الجوال" value={profile?.phone || "غير محدد"} icon={Phone} />
+        <Field label="المنطقة" value={profile?.city ? `${profile.city} - ${profile.country}` : "غير محدد"} icon={MapPin} />
       </div>
       <button className="mt-6 bg-brand hover:bg-brand-dark text-white font-bold rounded-xl px-6 py-3 shadow-lg w-full md:w-auto transition-colors">
         تحديث البيانات
@@ -422,5 +501,106 @@ function WishlistTab() {
         ))}
       </div>
     </div>
+  );
+}
+
+function TrackingTab() {
+  const [orderId, setOrderId] = useState("");
+  const [searched, setSearched] = useState(false);
+
+  return (
+    <Card>
+      <h2 className="text-xl font-bold mb-5">تتبع الطلب</h2>
+      <p className="text-muted-foreground text-sm mb-6">
+        أدخل رقم الطلب لتتبع حالة شحنتك ومعرفة موعد التوصيل المتوقع.
+      </p>
+      
+      <form 
+        onSubmit={(e) => { e.preventDefault(); setSearched(true); }}
+        className="flex flex-col sm:flex-row gap-3 mb-8"
+      >
+        <input
+          type="text"
+          value={orderId}
+          onChange={(e) => setOrderId(e.target.value)}
+          placeholder="رقم الطلب (مثال: #ORD-12345)"
+          className="flex-1 bg-cream-deep/40 border border-cream-deep rounded-xl px-4 py-3 outline-none focus:border-brand"
+          required
+        />
+        <button type="submit" className="bg-brand hover:bg-brand-dark text-white font-bold rounded-xl px-6 py-3 transition shrink-0 flex items-center justify-center gap-2">
+          <Search size={18} />
+          تتبع الآن
+        </button>
+      </form>
+
+      {searched && (
+        <div className="border border-cream-deep rounded-2xl p-6 bg-cream-deep/20">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <p className="font-bold text-lg">الطلب {orderId}</p>
+              <p className="text-sm text-muted-foreground">شركة الشحن: أرامكس</p>
+            </div>
+            <span className="bg-badge-orange/15 text-badge-orange font-bold px-3 py-1 rounded-full text-sm">
+              قيد التوصيل
+            </span>
+          </div>
+
+          <div className="relative border-r-2 border-brand/30 pr-6 space-y-6">
+            <div className="relative">
+              <span className="absolute -right-[29px] top-1 w-4 h-4 rounded-full bg-brand ring-4 ring-background"></span>
+              <p className="font-bold">تم خروج الشحنة للتوصيل</p>
+              <p className="text-xs text-muted-foreground mt-1">اليوم، 09:30 صباحاً</p>
+            </div>
+            <div className="relative opacity-60">
+              <span className="absolute -right-[29px] top-1 w-4 h-4 rounded-full bg-brand ring-4 ring-background"></span>
+              <p className="font-bold">وصلت الشحنة لمدينة الرياض</p>
+              <p className="text-xs text-muted-foreground mt-1">الأمس، 14:00 مساءً</p>
+            </div>
+            <div className="relative opacity-60">
+              <span className="absolute -right-[29px] top-1 w-4 h-4 rounded-full bg-brand ring-4 ring-background"></span>
+              <p className="font-bold">تم تأكيد الطلب وتجهيزه</p>
+              <p className="text-xs text-muted-foreground mt-1">2026/05/18</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function ShippingTab() {
+  return (
+    <Card>
+      <h2 className="text-xl font-bold mb-5">الشحن والتوصيل</h2>
+      <div className="space-y-6">
+        <div className="bg-cream-deep/30 rounded-2xl p-5 border border-cream-deep">
+          <div className="flex items-center gap-3 mb-3">
+            <Truck className="text-brand" size={24} />
+            <h3 className="font-bold text-lg">خيارات الشحن المتاحة</h3>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            نوفر خيارات شحن متعددة تناسب احتياجاتك. اختر ما يناسبك عند إتمام الطلب.
+          </p>
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div className="border border-cream-deep rounded-xl p-4">
+            <h4 className="font-bold mb-2">توصيل سريع (داخل الرياض)</h4>
+            <p className="text-xs text-muted-foreground mb-3">توصيل خلال 24 ساعة</p>
+            <p className="text-brand font-bold">25 ر.س</p>
+          </div>
+          <div className="border border-cream-deep rounded-xl p-4">
+            <h4 className="font-bold mb-2">توصيل عادي (باقي المدن)</h4>
+            <p className="text-xs text-muted-foreground mb-3">من 3 إلى 5 أيام عمل</p>
+            <p className="text-brand font-bold">35 ر.س</p>
+          </div>
+        </div>
+
+        <div className="bg-badge-green/10 text-badge-green rounded-xl p-4 text-sm font-bold flex items-center gap-2">
+          <CheckCircle2 size={18} />
+          <span>شحن مجاني للطلبات التي تزيد عن 500 ر.س</span>
+        </div>
+      </div>
+    </Card>
   );
 }

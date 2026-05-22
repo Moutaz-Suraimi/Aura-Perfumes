@@ -18,11 +18,11 @@ export interface Product {
 const unsplashImages = [
   "https://images.unsplash.com/photo-1594035910387-fea47794261f?q=80&w=600",
   "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?q=80&w=600",
-  "https://images.unsplash.com/photo-1615486171448-4fdcbab2069b?q=80&w=600",
-  "https://images.unsplash.com/photo-1587401305785-ce1a719af1e6?q=80&w=600",
+  "https://images.unsplash.com/photo-1594035910387-fea47794261f?q=80&w=600",
+  "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?q=80&w=600",
   "https://images.unsplash.com/photo-1547887538-e3a2f32cb1cc?q=80&w=600",
   "https://images.unsplash.com/photo-1557170334-a9632e77c6e4?q=80&w=600",
-  "https://images.unsplash.com/photo-1595425970377-c9703bc48b2d?q=80&w=600",
+  "https://images.unsplash.com/photo-1590156546946-ce55a12a6a5d?q=80&w=600",
   "https://images.unsplash.com/photo-1590156546946-ce55a12a6a5d?q=80&w=600",
   "https://images.unsplash.com/photo-1616949755610-8c9bbc08f138?q=80&w=600",
 ];

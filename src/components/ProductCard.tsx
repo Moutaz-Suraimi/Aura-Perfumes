@@ -68,18 +68,18 @@ export function ProductCard({ product }: { product: Product }) {
               e.preventDefault();
               add(product);
             }}
-            aria-label="Ø¥Ø¶Ø§ÙØ© Ø¥Ù„Ù‰ Ø§Ù„Ø³Ù„Ø©"
+            aria-label="إضافة إلى السلة"
             className="w-9 h-9 rounded-full bg-cream-deep/60 hover:bg-cream-deep flex items-center justify-center text-brand-dark transition"
           >
             <ShoppingBag size={16} />
           </button>
           <div className="text-right flex flex-col gap-0.5">
             <div className="text-xs text-muted-foreground line-through">
-              {fmt(product.oldPrice)} Ø±.Ø³
+              {fmt(product.oldPrice)} ر.س
             </div>
-            <div className="text-brand font-bold text-base">{fmt(product.price)} Ø±.Ø³</div>
+            <div className="text-brand font-bold text-base">{fmt(product.price)} ر.س</div>
             <div className="text-[10px] text-muted-foreground font-medium mt-0.5">
-              {fmt(product.priceYer || product.price * 142)} Ø±.ÙŠ
+              {fmt(product.priceYer || product.price * 142)} ر.ي
             </div>
           </div>
         </div>
