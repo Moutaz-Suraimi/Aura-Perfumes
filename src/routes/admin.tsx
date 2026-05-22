@@ -70,10 +70,15 @@ function AdminDashboard() {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setFirebaseUser(u);
       if (u) {
-        const profile = await getUserProfile(u.uid);
-        if (profile?.role === "admin" || u.email === "waelmoutaz297@gmail.com") {
-          setIsAdmin(true);
-        } else {
+        try {
+          const profile = await getUserProfile(u.uid);
+          if (profile?.role === "admin" || u.email === "waelmoutaz297@gmail.com") {
+            setIsAdmin(true);
+          } else {
+            setIsAdmin(false);
+          }
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
           setIsAdmin(false);
         }
       } else {

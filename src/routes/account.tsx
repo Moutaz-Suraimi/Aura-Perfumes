@@ -111,8 +111,13 @@ function AccountDashboard() {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setFirebaseUser(u);
       if (u) {
-        const profile = await getUserProfile(u.uid);
-        setUserProfile(profile);
+        try {
+          const profile = await getUserProfile(u.uid);
+          setUserProfile(profile);
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+          setUserProfile(null);
+        }
       } else {
         setUserProfile(null);
       }
