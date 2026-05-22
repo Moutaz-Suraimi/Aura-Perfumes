@@ -103,7 +103,23 @@ function AdminDashboard() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (err: any) {
-      setError(err.message);
+      // If the account does not exist and it's the admin email, create it automatically!
+      if (
+        (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found") &&
+        email.toLowerCase() === "waelmoutaz297@gmail.com"
+      ) {
+        try {
+          // It's a new admin, let's create the account for them
+          const cred = await createUserWithEmailAndPassword(auth, email, password);
+          // Set role to admin in Firestore
+          await createUserProfile(cred.user.uid, { name: "المدير العام", email, role: "admin" });
+          return; // Success!
+        } catch (createErr: any) {
+          setError("خطأ أثناء إنشاء حساب الإدارة: " + createErr.message);
+        }
+      } else {
+        setError(err.message);
+      }
     }
   };
 
